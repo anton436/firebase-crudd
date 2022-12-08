@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useReducer } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '../fire';
 
 const productContext = createContext();
@@ -41,12 +41,13 @@ const ProductContextProvider = ({ children }) => {
     // console.log(data.docs.map((doc) => ({ ...doc.data(), id: doc.id })));
   }
 
-  useEffect(() => {
-    getProducts();
-  }, []);
+  //create
+  async function createProduct(newProduct) {
+    await addDoc(productsCollectionRef, newProduct);
+  }
 
-  console.log(state);
-  const values = {};
+  // console.log(state);
+  const values = { createProduct };
   return (
     <productContext.Provider value={values}>{children}</productContext.Provider>
   );
