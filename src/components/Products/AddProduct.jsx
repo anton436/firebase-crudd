@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import { useNavigate } from 'react-router-dom';
 import { useProducts } from '../../contexts/ProductContextProvider';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { storage } from '../../fire';
 
 function AddProduct() {
   const { createProduct } = useProducts();
@@ -27,6 +29,65 @@ function AddProduct() {
   };
 
   console.log(product);
+
+  //! ================================== upload image================
+
+  const [file, setFile] = useState('');
+  const [uploadProgress, setUploadedProgress] = useState(null);
+
+  useEffect(() => {
+    const uploadFile = () => {
+      const storageRef = ref(storage, 'images/' + file.name);
+
+      const uploadTask = uploadBytesResumable(storageRef, file);
+
+      // Listen for state changes, errors, and completion of the upload.
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
+          const progress =
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setUploadedProgress(progress);
+          console.log('Upload is ' + progress + '% done');
+          switch (snapshot.state) {
+            case 'paused':
+              console.log('Upload is paused');
+              break;
+            case 'running':
+              console.log('Upload is running');
+              break;
+          }
+        },
+        (error) => {
+          // A full list of error codes is available at
+          // https://firebase.google.com/docs/storage/web/handle-errors
+          switch (error.code) {
+            case 'storage/unauthorized':
+              // User doesn't have permission to access the object
+              break;
+            case 'storage/canceled':
+              // User canceled the upload
+              break;
+
+            // ...
+
+            case 'storage/unknown':
+              // Unknown error occurred, inspect error.serverResponse
+              break;
+          }
+        },
+        () => {
+          // Upload completed successfully, now we can get the download URL
+          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+            setProduct((prev) => ({ ...prev, image: downloadURL }));
+          });
+        }
+      );
+    };
+
+    file && uploadFile();
+  }, [file]);
 
   return (
     <Form className='w-50 m-auto'>
@@ -73,8 +134,8 @@ function AddProduct() {
       <Form.Group className='mb-3' controlId='formBasicEmail'>
         <Form.Label>Product Image</Form.Label>
         <Form.Control
-          onChange={handleInp}
-          type='text'
+          onChange={(e) => setFile(e.target.files[0])}
+          type='file'
           name='image'
           placeholder='Enter product image url'
         />
@@ -87,6 +148,11 @@ function AddProduct() {
         }}
         variant='primary'
         type='button'
+        className={
+          uploadProgress !== null && uploadProgress < 100
+            ? 'disabled pe-none btn-light'
+            : 'pe-auto btn-success'
+        }
       >
         ADD product
       </Button>
