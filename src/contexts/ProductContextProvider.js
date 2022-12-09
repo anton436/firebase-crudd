@@ -1,5 +1,13 @@
 import React, { createContext, useContext, useEffect, useReducer } from 'react';
-import { collection, getDocs, addDoc } from 'firebase/firestore';
+import {
+  collection,
+  getDocs,
+  addDoc,
+  doc,
+  getDoc,
+  updateDoc,
+  deleteDoc,
+} from 'firebase/firestore';
 import { db } from '../fire';
 
 const productContext = createContext();
@@ -46,8 +54,43 @@ const ProductContextProvider = ({ children }) => {
     await addDoc(productsCollectionRef, newProduct);
   }
 
-  // console.log(state);
-  const values = { createProduct };
+  // update
+  async function getOneProductDetails(id) {
+    const productDocRef = doc(db, 'products', id);
+
+    // console.log(productDocRef, 'ref');
+    const productDetails = await getDoc(productDocRef);
+    dispatch({
+      type: 'GET_PRODUCT_DETAILS',
+      payload: productDetails.data(),
+    });
+
+    console.log(id);
+  }
+
+  async function updateProduct(id, updatedProduct) {
+    const productDocRef = doc(db, 'products', id);
+
+    await updateDoc(productDocRef, updatedProduct);
+    getProducts();
+  }
+
+  async function deleteProduct(id) {
+    const productDocRef = doc(db, 'products', id);
+    await deleteDoc(productDocRef);
+    getProducts();
+  }
+
+  const values = {
+    productDetails: state.productDetails,
+    getOneProductDetails,
+    updateProduct,
+    deleteProduct,
+
+    createProduct,
+    getProducts,
+    products: state.products,
+  };
   return (
     <productContext.Provider value={values}>{children}</productContext.Provider>
   );
